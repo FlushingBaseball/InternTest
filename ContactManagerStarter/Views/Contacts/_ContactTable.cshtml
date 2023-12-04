@@ -22,15 +22,26 @@
                 <td class="editContact" data-id="@contact.Id">@contact.LastName</td>
                 <td class="editContact" data-id="@contact.Id">
 
+                    @{
+                        bool primaryEmailFound = false;
+                    }
+
                     @foreach (var emailAddress in contact.EmailAddresses)
                     {
 
                         @if (emailAddress.IsPrimaryDisplay)
                         {
+                            primaryEmailFound = true;
                             @emailAddress.Email
 
                         }
                     }
+                    @if (!primaryEmailFound && contact.EmailAddresses.Count > 0)
+                        {
+                            // Display first email in collection
+                            @contact.EmailAddresses[0].Email
+                        }
+
                 </td>
                 <td class="whiteBackground defaultCursor"><a class="redText float-right pointer deleteContact" title="Delete Contact" data-toggle="modal" data-target="#modal-delete" data-id="@contact.Id">X</a></td>
             </tr>
