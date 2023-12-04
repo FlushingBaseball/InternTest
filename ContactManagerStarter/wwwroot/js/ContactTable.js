@@ -4,6 +4,20 @@ $(function () {
     loadContactTable();
     initSignalr();
 
+    let unsavedChanges = false;
+    $(document).on('click', function (event) {
+        //if click is outside edit contact partial view
+        if (!$(event.target).closest('.modal-body').length) {
+
+            if (unsavedChanges) {
+
+                alert('You have made unsaved changes!');
+            }
+        }
+    });
+
+
+
     $(document).on("dblclick", ".editContact", function () {
         let buttonClicked = $(this);
         let id = buttonClicked.data("id");
@@ -14,6 +28,7 @@ $(function () {
             data: { "Id": id },
             datatype: "json",
             success: function (data) {
+                $('#modal-editContact').modal({ backdrop: 'static' });
                 $('#EditContactModalContent').html(data);
                 $('#modal-editContact').modal('show');
                 $("#ServerErrorAlert").hide();
@@ -51,8 +66,8 @@ $(function () {
         let id = buttonClicked.data("id");
         $("#deleteContactConfirmed").data("id", id);
     });
-
     $(document).on("click", "#addNewEmail", function () {
+        unsavedChanges = true;
         let emailAddress = $('#newEmailAddress').val();
         let emailAddressType = $('#newEmailAddressType').val();
         let emailTypeClass;
@@ -80,6 +95,7 @@ $(function () {
     });
 
     $(document).on("click", "#addNewAddress", function () {
+        unsavedChanges = true;
         let street1 = $('#newAddressStreet1').val();
         let street2 = $('#newAddressStreet2').val();
         let city = $('#newAddressCity').val();
@@ -123,14 +139,18 @@ $(function () {
     });
 
     $(document).on("click", ".removeEmail", function () {
+        unsavedChanges = true;
         $(this).parent().remove();
     });
 
     $(document).on("click", ".removeAddress", function () {
+        unsavedChanges = true;
         $(this).parent().remove();
     });
 
     $(document).on("click", "#saveContactButton", function () {
+
+        unsavedChanges = false;
         function getEmailAddresses() {
 
             return $(".emailListItem").map(function () {
@@ -246,7 +266,7 @@ $(function () {
             contentType: "application/json; charset=utf-8",
             datatype: "json",
             success: function (data) {
-                console.log("Response Data:", data);
+               // console.log("Response Data:", data);
                 $('#contactTable').html(data);
                 $("#ServerErrorAlert").hide();
                 $("#tableHeader").show();
