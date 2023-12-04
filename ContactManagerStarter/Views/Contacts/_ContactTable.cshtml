@@ -25,8 +25,9 @@
                     @foreach (var emailAddress in contact.EmailAddresses)
                     {
                         <script>
-                            console.log(@contact.EmailAddresses)
+                            console.log("Contact Object: ", @Json.Serialize(contact));
                         </script>
+
                         @if (emailAddress.IsPrimaryDisplay)
                         {
                             @emailAddress.Email

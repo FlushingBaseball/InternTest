@@ -135,7 +135,8 @@ $(function () {
             return $(".emailListItem").map(function () {
                 return {
                     Email: $(this).data("email"),
-                    Type: $(this).data("type")
+                    Type: $(this).data("type"),
+                    IsPrimaryDisplay: $(this).data("IsPrimaryDisplay")
                 }
             }).get();
         }
@@ -244,6 +245,7 @@ $(function () {
             contentType: "application/json; charset=utf-8",
             datatype: "json",
             success: function (data) {
+                console.log("Response Data:", data);
                 $('#contactTable').html(data);
                 $("#ServerErrorAlert").hide();
                 $("#tableHeader").show();

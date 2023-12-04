@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -17,8 +18,10 @@ namespace ContactManager.Data
         public void SetAsPrimary()
         {
             var oldPrimaryEmail = Contact.EmailAddresses.SingleOrDefault(e => e.IsPrimaryDisplay);
+            var allEmailAddresses = Contact.EmailAddresses.ToList();
 
             Debug.WriteLine($"Old Primary Email: {oldPrimaryEmail?.Email ?? "None"}");
+            Debug.WriteLine($"AllEmailAddresses: {(allEmailAddresses.Any() ? string.Join(", ", allEmailAddresses.Select(e => e.Email)) : "None")}");
 
             if (oldPrimaryEmail != null && oldPrimaryEmail.Email != this.Email)
             {

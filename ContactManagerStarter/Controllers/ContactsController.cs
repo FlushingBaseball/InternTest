@@ -29,8 +29,8 @@ namespace ContactManager.Controllers
         public IActionResult SetPrimaryEmail(string emailAddress)
         {
             var email = _context.EmailAddresses
-                // Including the Parent via navigation property on email
-                .Include(e => e.Contact)
+                // Including all the parents emailAddresses to insure only one can be primary
+                .Include(e => e.Contact.EmailAddresses)
                 .SingleOrDefault(e => e.Email == emailAddress);
 
             if (email != null)
@@ -138,6 +138,7 @@ namespace ContactManager.Controllers
                 {
                     Type = email.Type,
                     Email = email.Email,
+                    IsPrimaryDisplay = email.IsPrimaryDisplay,
                     Contact = contact
                 });
             }
