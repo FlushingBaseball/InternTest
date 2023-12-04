@@ -98,6 +98,8 @@ namespace ContactManager.Controllers
         public async Task<IActionResult> GetContacts()
         {
             var contactList = await _context.Contacts
+                // Including EmailAddresses so  contact table view can display
+                .Include(c => c.EmailAddresses)
                 .OrderBy(x => x.FirstName)
                 .ToListAsync();
 
