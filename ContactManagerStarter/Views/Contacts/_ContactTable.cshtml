@@ -21,8 +21,12 @@
                 <td class="editContact" data-id="@contact.Id">@contact.FirstName</td>
                 <td class="editContact" data-id="@contact.Id">@contact.LastName</td>
                 <td class="editContact" data-id="@contact.Id">
+
                     @foreach (var emailAddress in contact.EmailAddresses)
                     {
+                        <script>
+                            console.log(@contact.EmailAddresses)
+                        </script>
                         @if (emailAddress.IsPrimaryDisplay)
                         {
                             @emailAddress.Email
