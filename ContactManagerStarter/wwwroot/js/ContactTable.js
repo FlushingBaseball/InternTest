@@ -132,11 +132,12 @@ $(function () {
 
     $(document).on("click", "#saveContactButton", function () {
         function getEmailAddresses() {
+
             return $(".emailListItem").map(function () {
                 return {
                     Email: $(this).data("email"),
                     Type: $(this).data("type"),
-                    IsPrimaryDisplay: $(this).data("IsPrimaryDisplay")
+                    IsPrimaryDisplay: $(this).data("isprimarydisplay")
                 }
             }).get();
         }

@@ -42,7 +42,8 @@
                     {
                         foreach (var emailAddress in Model.EmailAddresses)
                         {
-                            <li class="list-group-item emailListItem" data-email="@emailAddress.Email" data-type="@emailAddress.Type">
+
+                        <li class="list-group-item emailListItem" data-email="@emailAddress.Email" data-type="@emailAddress.Type" data-IsPrimaryDisplay="@emailAddress.IsPrimaryDisplay">
                                 @{
                                     if (emailAddress.Type == EmailType.Personal)
                                     {
