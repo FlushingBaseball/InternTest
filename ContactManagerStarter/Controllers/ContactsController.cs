@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using MailKit;
 using MimeKit;
 using MailKit.Net.Smtp;
+using Microsoft.Extensions.Logging;
 
 namespace ContactManager.Controllers
 {
@@ -18,92 +19,130 @@ namespace ContactManager.Controllers
     {
         private readonly ApplicationContext _context;
         private readonly IHubContext<ContactHub> _hubContext;
+        private readonly ILogger<ContactsController> _logger;
 
-        public ContactsController(ApplicationContext context, IHubContext<ContactHub> hubContext)
+        public ContactsController(ApplicationContext context, IHubContext<ContactHub> hubContext, ILogger<ContactsController> logger)
         {
             _context = context;
             _hubContext = hubContext;
+            _logger = logger;
         }
 
         [HttpPost]
         public IActionResult SetPrimaryEmail(string emailAddress)
         {
-            var email = _context.EmailAddresses
-                // Including all the parents emailAddresses to insure only one can be primary
-                .Include(e => e.Contact.EmailAddresses)
-                .SingleOrDefault(e => e.Email == emailAddress);
-
-            if (email != null)
+            try
             {
-                email.SetAsPrimary();
 
-                _context.SaveChanges();
+                var email = _context.EmailAddresses
+                    // Including all the parents emailAddresses to insure only one can be primary
+                    .Include(e => e.Contact.EmailAddresses)
+                    .SingleOrDefault(e => e.Email == emailAddress);
 
-                return Ok(email);
+                if (email != null)
+                {
+                    email.SetAsPrimary();
 
+                    _context.SaveChanges();
+
+                    return Ok(email);
+
+                }
+
+                return NotFound();
             }
-
-            return NotFound();
+            catch (Exception ex) {
+                _logger.LogError(ex, "An error occurred in SetPrimaryEmail");
+                return StatusCode(500, "Internal Server Error");
+            }
         
         }
 
 
         public async Task<IActionResult> DeleteContact(Guid id)
         {
-            var contactToDelete = await _context.Contacts
-                .Include(x => x.EmailAddresses)
-                .FirstOrDefaultAsync(x => x.Id == id);
-
-            if (contactToDelete == null)
+            try
             {
-                return BadRequest();
+
+                var contactToDelete = await _context.Contacts
+                    .Include(x => x.EmailAddresses)
+                    .FirstOrDefaultAsync(x => x.Id == id);
+
+                if (contactToDelete == null)
+                {
+                    return BadRequest();
+                }
+
+                _context.EmailAddresses.RemoveRange(contactToDelete.EmailAddresses);
+                _context.Contacts.Remove(contactToDelete);
+
+                await _context.SaveChangesAsync();
+
+                await _hubContext.Clients.All.SendAsync("Update");
+
+                return Ok();
+
             }
-
-            _context.EmailAddresses.RemoveRange(contactToDelete.EmailAddresses);
-            _context.Contacts.Remove(contactToDelete);
-
-            await _context.SaveChangesAsync();
-
-            await _hubContext.Clients.All.SendAsync("Update");
-
-            return Ok();
+            catch (Exception ex) {
+                _logger.LogError(ex, "An error occurred in Delete Contact");
+                return StatusCode(500, "Internal Server Error");
+            }
         }
 
         public async Task<IActionResult> EditContact(Guid id)
         {
-            var contact = await _context.Contacts
-                .Include(x => x.EmailAddresses)
-                .Include(x => x.Addresses)
-                .FirstOrDefaultAsync(x => x.Id == id);
+            try  
+            { 
+                var contact = await _context.Contacts
+                    .Include(x => x.EmailAddresses)
+                    .Include(x => x.Addresses)
+                    .FirstOrDefaultAsync(x => x.Id == id);
 
-            if (contact == null)
+                if (contact == null)
+                {
+                    return NotFound();
+                }
+
+                var viewModel = new EditContactViewModel
+                {
+                    Id = contact.Id,
+                    Title = contact.Title,
+                    FirstName = contact.FirstName,
+                    LastName = contact.LastName,
+                    DOB = contact.DOB,
+                    EmailAddresses = contact.EmailAddresses,
+                    Addresses = contact.Addresses
+                };
+
+                return PartialView("_EditContact", viewModel);
+
+                }
+            catch (Exception ex)
             {
-                return NotFound();
+                _logger.LogError(ex, "An error occurred in EditContact");
+                return StatusCode(500, "Internal Server Error");
             }
 
-            var viewModel = new EditContactViewModel
-            {
-                Id = contact.Id,
-                Title = contact.Title,
-                FirstName = contact.FirstName,
-                LastName = contact.LastName,
-                DOB = contact.DOB,
-                EmailAddresses = contact.EmailAddresses,
-                Addresses = contact.Addresses
-            };
-
-            return PartialView("_EditContact", viewModel);
         }
 
         public async Task<IActionResult> GetContacts()
         {
-            var contactList = await _context.Contacts
-                // Including EmailAddresses so  contact table view can display
-                .Include(c => c.EmailAddresses)
-                .OrderBy(x => x.FirstName)
-                .ToListAsync();
+            try
+            {
+                var contactList = await _context.Contacts
+                    // Including EmailAddresses so  contact table view can display
+                    .Include(c => c.EmailAddresses)
+                    .OrderBy(x => x.FirstName)
+                    .ToListAsync();
 
-            return PartialView("_ContactTable", new ContactViewModel { Contacts = contactList });
+                return PartialView("_ContactTable", new ContactViewModel { Contacts = contactList });
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred in GetContacts");
+                return StatusCode(500, "Internal Server Error");
+            }
         }
 
         public IActionResult Index()
@@ -119,6 +158,8 @@ namespace ContactManager.Controllers
         [HttpPost]
         public async Task<IActionResult> SaveContact([FromBody]SaveContactViewModel model)
         {
+            try { 
+            
             var contact = model.ContactId == Guid.Empty
                 ? new Contact { Title = model.Title, FirstName = model.FirstName, LastName = model.LastName, DOB = model.DOB }
                 : await _context.Contacts.Include(x => x.EmailAddresses).Include(x => x.Addresses).FirstOrDefaultAsync(x => x.Id == model.ContactId);
@@ -177,31 +218,46 @@ namespace ContactManager.Controllers
             SendEmailNotification(contact.Id);
 
             return Ok();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred in SaveContact");
+                return StatusCode(500, "Internal Server Error");
+            }
+
         }
 
         private void SendEmailNotification(Guid contactId)
         {
-            var message = new MimeMessage();
+            try {
+                var message = new MimeMessage();
 
-            message.From.Add(new MailboxAddress("noreply", "noreply@contactmanager.com"));
-            message.To.Add(new MailboxAddress("SysAdmin", "Admin@contactmanager.com"));
-            message.Subject = "ContactManager System Alert";
+                message.From.Add(new MailboxAddress("noreply", "noreply@contactmanager.com"));
+                message.To.Add(new MailboxAddress("SysAdmin", "Admin@contactmanager.com"));
+                message.Subject = "ContactManager System Alert";
 
-            message.Body = new TextPart("plain")
-            {
-                Text = "Contact with id:" + contactId.ToString() +" was updated"
-            };
+                message.Body = new TextPart("plain")
+                {
+                    Text = "Contact with id:" + contactId.ToString() +" was updated"
+                };
 
-            using (var client = new SmtpClient())
-            {
-                // For demo-purposes, accept all SSL certificates (in case the server supports STARTTLS)
-                client.ServerCertificateValidationCallback = (s, c, h, e) => true;
+                using (var client = new SmtpClient())
+                {
+                    // For demo-purposes, accept all SSL certificates (in case the server supports STARTTLS)
+                    client.ServerCertificateValidationCallback = (s, c, h, e) => true;
 
-                client.Connect("127.0.0.1", 25, false);
+                    client.Connect("127.0.0.1", 25, false);
 
-                client.Send(message);
-                client.Disconnect(true);
+                    client.Send(message);
+                    client.Disconnect(true);
+                }
+            
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred in GetContacts");
+            }
+
 
         }
 
