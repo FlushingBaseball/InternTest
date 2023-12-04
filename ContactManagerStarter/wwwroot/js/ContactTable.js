@@ -24,6 +24,28 @@ $(function () {
         });
     });
 
+    $(document).on("click", ".setPrimaryEmail", function () {
+        let emailAddress = $(this).data('email');
+
+        $.ajax({
+            url: '/Contacts/setPrimaryEmail',
+            method: 'POST',
+            data: { emailAddress: emailAddress },
+
+            success: function (data) {
+                console.log("setPrimaryEmail success", data)
+            },
+
+            error: function (error) {
+                console.error("Error setting email as primary:", error)
+            }
+
+        });
+
+
+
+    });
+
     $(document).on("click", ".deleteContact", function () {
         let buttonClicked = $(this);
         let id = buttonClicked.data("id");

@@ -25,6 +25,29 @@ namespace ContactManager.Controllers
             _hubContext = hubContext;
         }
 
+        [HttpPost]
+        public IActionResult SetPrimaryEmail(string emailAddress)
+        {
+            var email = _context.EmailAddresses
+                // Including the Parent via navigation property on email
+                .Include(e => e.Contact)
+                .SingleOrDefault(e => e.Email == emailAddress);
+
+            if (email != null)
+            {
+                email.SetAsPrimary();
+
+                _context.SaveChanges();
+
+                return Ok(email);
+
+            }
+
+            return NotFound();
+        
+        }
+
+
         public async Task<IActionResult> DeleteContact(Guid id)
         {
             var contactToDelete = await _context.Contacts
